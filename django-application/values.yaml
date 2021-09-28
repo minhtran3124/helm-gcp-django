@@ -1,0 +1,115 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+label:
+  env:
+    production: production
+    development: development
+
+# Configuration for api
+api:
+  # policy
+  restartPolicy: Always
+  imagePullPolicy: Always
+
+  # deployment
+  name: api-deployment
+  image: gcr.io/samples-192203/sample-employees
+  imageTag: v4
+  replicas: 1
+  containerPort: 8000
+  healthzPath: /
+  initialDelaySeconds: 10
+  periodSeconds: 30
+
+  # service
+  type: NodePort
+  port: 8000
+  targetPort: 8000
+
+  # resources
+  # requests:
+  #   memory: 64Mi
+  #   cpu: 125M
+  # limits:
+  #   memory: 128Mi
+  #   cpu: 250M
+
+  # volumes
+  cloudsqlOauthCredentials:
+    name: cloudsql-oauth-credentials
+    mountPath: /secrets/cloudsql
+  cloudsql:
+    name: cloudsql
+
+# Configuration for database
+database:
+  restartPolicy: Never
+  name: gcloud-sqlproxy
+  image: gcr.io/cloudsql-docker/gce-proxy
+  imageTag: 1.11
+  serviceAccountKey: <place_holder>
+  cloudsql:
+    instance: samples-192203:us-central1:samples-employees
+    port: 5432
+    credential_file: /secrets/cloudsql/credentials.json
+  volumeMounts:
+    name: cloudsql-oauth-credentials
+    mountPath: /secrets/cloudsql
+    readOnly: true
+
+# Configuration for cheese
+cheese:
+  # policy
+  restartPolicy: Always
+  imagePullPolicy: Always
+
+  # deployment
+  replicas: 1
+  name: cheese-deployment
+  image: gcr.io/samples-192203/cheese
+  containerPort: 80
+
+  # version tag
+  cheddar: cheddar
+  stilton: stilton
+
+  # service
+  type: NodePort
+  port: 80
+  targetPort: 80
+
+  # resources
+  # requests:
+  #   memory: "64Mi"
+  #   cpu: "125m"
+  # limits:
+  #   memory: "128Mi"
+  #   cpu: "250m"
+
+secret:
+  # Used to create authentication access database
+  cloudsqlOauthCredentials:
+    name: cloudsql-oauth-credentials
+    data: <place_holder>
+  # Used to create secrets key to access gcloud database
+  cloudsqlDbCredentials:
+    name: cloudsql-db-credentials
+    username: YWRtaW4=
+    password: YWRtaW4xMjM=
+  # Used to create secrets key to access admin database
+  backendSecrets:
+    name: backend-secrets
+    host: MTI3LjAuMC4x
+    port: NTQzMg==
+  default:
+    username: cG9zdGdyZXMK
+    password: cG9zdGdyZXMK
+
+ingress:
+  # Condition to enable or not create Ingress
+  enabled: true
+  # Host accessing after deployment sucessfully
+  host: mydjango
+  name: api-ingress
+  annotations:
+  tls:

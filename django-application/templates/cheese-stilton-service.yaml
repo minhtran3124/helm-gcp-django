@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.cheese.stilton }}-{{ .Values.cheese.name }}
+  labels:
+    app: {{ .Values.cheese.stilton }}-{{ .Values.cheese.name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.cheese.type }}
+  ports:
+  - port: {{ .Values.cheese.port }}
+    targetPort: {{ .Values.cheese.targetPort }}
+  selector:
+    app: {{ .Values.cheese.stilton }}-{{ .Values.cheese.name }}

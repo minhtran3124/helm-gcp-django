@@ -1,0 +1,8 @@
+apiVersion: v1
+description: A Helm chart for Kubernetes
+name: django-application
+version: 0.1.0
+icon: http://www.pvhc.net/img51/wkzzgemsplphgrbueciu.png
+maintainers:
+  - name: MinhTran
+    email: tranhuuminh3124@gmail.com

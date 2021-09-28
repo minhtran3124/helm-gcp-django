@@ -1,0 +1,87 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  # This uses a "fullname" template (see _helpers)
+  # Basing names on .Release.Name means that the same chart can be installed
+  # multiple times into the same namespace.
+  name: {{ template "django-application.fullname" . }}
+  labels:
+    # The "release" convention makes it easy to tie a release to all of the
+    # Kubernetes resources that were created as part of that release.
+    release: {{ .Release.Name }}
+    # The "heritage" label is used to track which tool deployed a given chart.
+    # It is useful for admins who want to see what releases a particular tool
+    # is responsible for.
+    heritage: {{ .Release.Service }}
+    # This makes it easy to audit chart usage.
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app: {{ template "django-application.name" . }}
+spec:
+  replicas: {{ .Values.api.replicas }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/pre-install-secret.yaml") . | sha256sum }}
+      labels:
+        app: {{ template "django-application.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      # This shows how to use a simple value. This will look for a passed-in value
+      # called restartPolicy. If it is not found, it will use the default value.
+      # {{ default "Always" .restartPolicy }} is a slightly optimized version of the
+      # more conventional syntax: {{ .restartPolicy | default "Always" }}
+      restartPolicy: {{ .Values.api.restartPolicy }}
+      containers:
+        - name: {{ .Values.api.name }}
+          image: "{{ .Values.api.image }}:{{ .Values.api.imageTag }}"
+          imagePullPolicy: {{ .Values.api.imagePullPolicy }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.api.healthzPath }}
+              port: {{ .Values.api.containerPort }}
+            initialDelaySeconds: {{ .Values.api.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.api.healthzPath }}
+              port: {{ .Values.api.containerPort }}
+            initialDelaySeconds: {{ .Values.api.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.periodSeconds }}
+          env:
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.cloudsqlDbCredentials.name }}
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.cloudsqlDbCredentials.name }}
+                  key: password
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.backendSecrets.name }}
+                  key: db-host
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.backendSecrets.name }}
+                  key: db-port
+          ports:
+            - containerPort: {{ .Values.api.containerPort }}
+        - name: {{ .Values.database.name }}
+          image: "{{ .Values.database.image }}:{{ .Values.database.imageTag }}"
+          command: ["/cloud_sql_proxy",
+                    "-instances={{ .Values.database.cloudsql.instance }}=tcp:{{ .Values.database.cloudsql.port }}",
+                    "-credential_file={{ .Values.database.cloudsql.credential_file }}"]
+          volumeMounts:
+            - name: {{ .Values.database.volumeMounts.name }}
+              mountPath: {{ .Values.database.volumeMounts.mountPath }}
+              readOnly: {{ .Values.database.volumeMounts.readOnly }}
+      volumes:
+      - name: {{ .Values.api.cloudsqlOauthCredentials.name }}
+        secret:
+          secretName: {{ .Values.api.cloudsqlOauthCredentials.name }}
+      - name: {{ .Values.api.cloudsql.name }}
+        emptyDir:
