@@ -1,0 +1,29 @@
+{{- $serviceName := include "django-application.fullname" . -}}
+{{- $servicePort := .Values.api.targetPort -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ template "django-application.fullname" . }}
+  labels:
+    app: {{ template "django-application.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /*
+            backend:
+              serviceName: {{ $serviceName }}
+              servicePort: {{ $servicePort }}
+          - path: /stilton
+            backend:
+              serviceName: {{ .Values.cheese.stilton }}-{{ .Values.cheese.name }}
+              servicePort: 80
+          - path: /cheddar
+            backend:
+              serviceName: {{ .Values.cheese.cheddar }}-{{ .Values.cheese.name }}
+              servicePort: 80
+

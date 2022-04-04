@@ -1,0 +1,23 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Values.cheese.cheddar }}-{{ .Values.cheese.name }}
+  labels:
+    app: {{ .Values.cheese.cheddar }}-{{ .Values.cheese.name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.cheese.replicas }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.cheese.cheddar }}-{{ .Values.cheese.name }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Values.cheese.cheddar }}-{{ .Values.cheese.name }}
+          image: "{{ .Values.cheese.image }}:{{ .Values.cheese.cheddar }}"
+          imagePullPolicy: {{ .Values.cheese.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.cheese.containerPort }}
